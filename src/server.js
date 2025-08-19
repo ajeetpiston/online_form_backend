@@ -61,46 +61,50 @@ app.use(`/api/${process.env.API_VERSION || "v1"}`, routes);
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
-
-// Database connection and server startup
-const startServer = async () => {
+// Initialize database connection for serverless
+const initializeDatabase = async () => {
   try {
-    // Test database connection
     await sequelize.authenticate();
     logger.info("Database connection established successfully.");
 
-    // Sync database (in development only)
+    // Only sync in development
     if (process.env.NODE_ENV === "development") {
       await sequelize.sync({ alter: true });
       logger.info("Database synchronized successfully.");
     }
-
-    // Start server
-    app.listen(PORT, () => {
-      logger.info(
-        `Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
-      );
-    });
   } catch (error) {
-    logger.error("Unable to start server:", error);
-    process.exit(1);
+    logger.error("Database connection failed:", error);
+    throw error;
   }
 };
 
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-  logger.info("SIGTERM received, shutting down gracefully");
-  await sequelize.close();
-  process.exit(0);
+// Initialize database connection
+initializeDatabase().catch((error) => {
+  logger.error("Failed to initialize database:", error);
 });
 
-process.on("SIGINT", async () => {
-  logger.info("SIGINT received, shutting down gracefully");
-  await sequelize.close();
-  process.exit(0);
-});
+// For local development
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
 
-startServer();
+  app.listen(PORT, () => {
+    logger.info(
+      `Server running on port ${PORT} in ${process.env.NODE_ENV} mode`
+    );
+  });
+
+  // Graceful shutdown for local development
+  process.on("SIGTERM", async () => {
+    logger.info("SIGTERM received, shutting down gracefully");
+    await sequelize.close();
+    process.exit(0);
+  });
+
+  process.on("SIGINT", async () => {
+    logger.info("SIGINT received, shutting down gracefully");
+    await sequelize.close();
+    process.exit(0);
+  });
+}
 
 module.exports = app;
