@@ -1,7 +1,7 @@
 {
   "version": 2,
   "functions": {
-    "api/server.js": {
+    "src/server.js": {
       "runtime": "@vercel/node@2.0.0",
       "maxDuration": 30
     }
@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "api/server.js"
+      "dest": "src/server.js"
     }
   ],
   "env": {
